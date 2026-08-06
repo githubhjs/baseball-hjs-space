@@ -1,0 +1,13 @@
+{
+  "name": "baseball-hjs-space",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "baseball.hjs.space — MLB live scores, standings & stats for Traditional Chinese readers",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
