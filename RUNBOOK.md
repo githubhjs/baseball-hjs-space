@@ -83,6 +83,10 @@ both is harmless — the workflow is idempotent, and `concurrency: cancel-in-pro
   DNS CNAME (`baseball` → `baseball-hjs-space.pages.dev`, proxied) — both steps required, a CNAME
   alone isn't enough (see `reference_cloudflare_api` memory for the general Cloudflare Pages recipe
   this followed).
+- **Alias domain**: `mlb.hjs.space` also points at this same project (added 2026-08-06, same
+  `POST .../domains` + CNAME recipe, second hostname on the same project) — same pattern as
+  `blog.hjs.space`/`career.hjs.space` on the career-blog project. Any future domain-facing change
+  (redirects, canonical URL logic, etc.) should account for both hostnames.
 - **Deploy-verification gotcha (hit repeatedly this project)**: a screenshot/fetch taken
   *immediately* after a `deploy success` can show stale content for several seconds to ~30s — pure
   Cloudflare edge-cache propagation lag, not a failed deploy or a real bug. Wait and re-check before
