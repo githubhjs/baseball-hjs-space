@@ -3,11 +3,20 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { fetchSchedule, fetchStandings, todayOfficialDate } from './lib/mlbApi.mjs';
+import { fetchSchedule, fetchStandings, fetchPlayerLeaders, fetchTeamStats, todayOfficialDate } from './lib/mlbApi.mjs';
 import { renderGameCard } from './lib/gameCard.mjs';
 import { renderDivisionTable } from './lib/standingsTable.mjs';
 import { page } from './lib/layout.mjs';
 import { taipeiDateStamp } from './lib/format.mjs';
+import {
+  PLAYER_BATTING_CATS,
+  PLAYER_PITCHING_CATS,
+  TEAM_BATTING_CATS,
+  TEAM_PITCHING_CATS,
+  playerRowsFromLeaders,
+  teamRowsFromStats,
+  renderLeaderCard,
+} from './lib/leaders.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -21,18 +30,24 @@ async function main() {
   const season = date.slice(0, 4);
   const generatedAt = taipeiDateStamp(new Date().toISOString());
 
-  const [games, standings] = await Promise.all([
+  const [games, standings, playerBatting, playerPitching, teamBatting, teamPitching] = await Promise.all([
     fetchSchedule(date),
     fetchStandings(season),
+    fetchPlayerLeaders(season, PLAYER_BATTING_CATS.map((c) => c.key), 'hitting'),
+    fetchPlayerLeaders(season, PLAYER_PITCHING_CATS.map((c) => c.key), 'pitching'),
+    fetchTeamStats(season, 'hitting'),
+    fetchTeamStats(season, 'pitching'),
   ]);
 
   games.sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
 
   const todayBody = renderTodayBody(games, date);
   const standingsBody = renderStandingsBody(standings);
+  const leadersBody = renderLeadersBody({ playerBatting, playerPitching, teamBatting, teamPitching });
 
   await mkdir(DIST, { recursive: true });
   await mkdir(path.join(DIST, 'standings'), { recursive: true });
+  await mkdir(path.join(DIST, 'leaders'), { recursive: true });
 
   await writeFile(
     path.join(DIST, 'index.html'),
@@ -56,6 +71,17 @@ async function main() {
     })
   );
 
+  await writeFile(
+    path.join(DIST, 'leaders', 'index.html'),
+    page({
+      title: 'MLB 數據王 | baseball.hjs.space',
+      description: 'MLB 美國職棒大聯盟球員與球隊數據排行榜，打擊率、全壘打、防禦率等，繁體中文呈現。',
+      active: 'leaders',
+      body: leadersBody,
+      generatedAt,
+    })
+  );
+
   if (existsSync(path.join(ASSETS, 'style.css'))) {
     await copyFile(path.join(ASSETS, 'style.css'), path.join(DIST, 'style.css'));
   }
@@ -68,7 +94,7 @@ async function main() {
   );
   await writeFile(
     path.join(DIST, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n</urlset>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n</urlset>\n`
   );
 
   console.log(`Built ${games.length} games + ${standings.length} standings groups for ${date}.`);
@@ -102,6 +128,43 @@ function renderStandingsBody(standings) {
   return `
     <h1 class="page-title">戰績排名</h1>
     <div class="standings-grid">${sections}</div>`;
+}
+
+function renderLeadersBody({ playerBatting, playerPitching, teamBatting, teamPitching }) {
+  const playerBattingCards = PLAYER_BATTING_CATS.map((cat) =>
+    renderLeaderCard(cat.label, playerRowsFromLeaders(playerBatting, cat.key))
+  ).join('\n');
+
+  const playerPitchingCards = PLAYER_PITCHING_CATS.map((cat) =>
+    renderLeaderCard(cat.label, playerRowsFromLeaders(playerPitching, cat.key))
+  ).join('\n');
+
+  const teamBattingCards = TEAM_BATTING_CATS.map((cat) =>
+    renderLeaderCard(cat.label, teamRowsFromStats(teamBatting, cat.key, cat.dir), { showTeamColumn: false })
+  ).join('\n');
+
+  const teamPitchingCards = TEAM_PITCHING_CATS.map((cat) =>
+    renderLeaderCard(cat.label, teamRowsFromStats(teamPitching, cat.key, cat.dir), { showTeamColumn: false })
+  ).join('\n');
+
+  return `
+    <h1 class="page-title">數據王</h1>
+    <section class="leaders-section">
+      <h2 class="leaders-section-title">球員 · 打擊</h2>
+      <div class="leaders-grid">${playerBattingCards}</div>
+    </section>
+    <section class="leaders-section">
+      <h2 class="leaders-section-title">球員 · 投球</h2>
+      <div class="leaders-grid">${playerPitchingCards}</div>
+    </section>
+    <section class="leaders-section">
+      <h2 class="leaders-section-title">球隊 · 打擊</h2>
+      <div class="leaders-grid">${teamBattingCards}</div>
+    </section>
+    <section class="leaders-section">
+      <h2 class="leaders-section-title">球隊 · 投球</h2>
+      <div class="leaders-grid">${teamPitchingCards}</div>
+    </section>`;
 }
 
 main().catch((err) => {

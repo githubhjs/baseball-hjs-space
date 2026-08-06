@@ -4,6 +4,7 @@ export function page({ title, description, active, body, generatedAt }) {
   const nav = [
     { href: '/', label: '今日賽事', key: 'today' },
     { href: '/standings/', label: '戰績排名', key: 'standings' },
+    { href: '/leaders/', label: '數據王', key: 'leaders' },
   ];
 
   const navHtml = nav
@@ -25,7 +26,7 @@ export function page({ title, description, active, body, generatedAt }) {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://baseball.hjs.space${active === 'standings' ? '/standings/' : '/'}">
+<meta property="og:url" content="https://baseball.hjs.space${active === 'standings' ? '/standings/' : active === 'leaders' ? '/leaders/' : '/'}">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}" crossorigin="anonymous"></script>
 </head>
 <body>
