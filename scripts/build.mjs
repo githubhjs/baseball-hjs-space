@@ -17,6 +17,8 @@ import {
   teamRowsFromStats,
   renderLeaderCard,
 } from './lib/leaders.mjs';
+import { fetchExpectedStats, fetchStatcastBattedBall, fetchSprintSpeed } from './lib/savantApi.mjs';
+import { BATTER_ADVANCED_CATS, PITCHER_ADVANCED_CATS, advancedRows, renderAdvancedCard } from './lib/advanced.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -44,10 +46,12 @@ async function main() {
   const todayBody = renderTodayBody(games, date);
   const standingsBody = renderStandingsBody(standings);
   const leadersBody = renderLeadersBody({ playerBatting, playerPitching, teamBatting, teamPitching });
+  const advancedBody = await buildAdvancedBody(season);
 
   await mkdir(DIST, { recursive: true });
   await mkdir(path.join(DIST, 'standings'), { recursive: true });
   await mkdir(path.join(DIST, 'leaders'), { recursive: true });
+  await mkdir(path.join(DIST, 'advanced'), { recursive: true });
 
   await writeFile(
     path.join(DIST, 'index.html'),
@@ -82,6 +86,17 @@ async function main() {
     })
   );
 
+  await writeFile(
+    path.join(DIST, 'advanced', 'index.html'),
+    page({
+      title: 'MLB 進階數據 | baseball.hjs.space',
+      description: 'MLB Statcast 官方進階數據：xwOBA、xERA、出球速度、標準桶率、衝刺速度，繁體中文呈現。',
+      active: 'advanced',
+      body: advancedBody,
+      generatedAt,
+    })
+  );
+
   if (existsSync(path.join(ASSETS, 'style.css'))) {
     await copyFile(path.join(ASSETS, 'style.css'), path.join(DIST, 'style.css'));
   }
@@ -94,7 +109,7 @@ async function main() {
   );
   await writeFile(
     path.join(DIST, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n</urlset>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n  <url><loc>https://baseball.hjs.space/advanced/</loc></url>\n</urlset>\n`
   );
 
   console.log(`Built ${games.length} games + ${standings.length} standings groups for ${date}.`);
@@ -164,6 +179,61 @@ function renderLeadersBody({ playerBatting, playerPitching, teamBatting, teamPit
     <section class="leaders-section">
       <h2 class="leaders-section-title">球隊 · 投球</h2>
       <div class="leaders-grid">${teamPitchingCards}</div>
+    </section>`;
+}
+
+async function buildAdvancedBody(season) {
+  let batterExpected = [];
+  let batterBattedBall = [];
+  let sprintSpeed = [];
+  let pitcherExpected = [];
+  let pitcherBattedBall = [];
+  let fetchFailed = false;
+
+  try {
+    [batterExpected, batterBattedBall, sprintSpeed, pitcherExpected, pitcherBattedBall] = await Promise.all([
+      fetchExpectedStats(season, 'batter'),
+      fetchStatcastBattedBall(season, 'batter'),
+      fetchSprintSpeed(season),
+      fetchExpectedStats(season, 'pitcher'),
+      fetchStatcastBattedBall(season, 'pitcher'),
+    ]);
+  } catch (err) {
+    // Isolated on purpose: Baseball Savant is a separate system from the
+    // official MLB Stats API used everywhere else on this site. If Savant
+    // has an outage or changes its export format, the rest of the site
+    // (today's games, standings, leaders) must still build successfully.
+    console.error('Baseball Savant fetch failed, rendering empty-state advanced page:', err);
+    fetchFailed = true;
+  }
+
+  if (fetchFailed) {
+    return `
+    <h1 class="page-title">進階數據</h1>
+    <p class="empty-state">Baseball Savant 官方數據暫時無法取得，請稍後再試。</p>`;
+  }
+
+  const batterCards = BATTER_ADVANCED_CATS.map((cat) =>
+    renderAdvancedCard(
+      cat.label,
+      advancedRows({ expected: batterExpected, battedball: batterBattedBall, sprintspeed: sprintSpeed }, cat)
+    )
+  ).join('\n');
+
+  const pitcherCards = PITCHER_ADVANCED_CATS.map((cat) =>
+    renderAdvancedCard(cat.label, advancedRows({ expected: pitcherExpected, battedball: pitcherBattedBall }, cat))
+  ).join('\n');
+
+  return `
+    <h1 class="page-title">進階數據</h1>
+    <p class="page-subtitle">資料來源：Baseball Savant（MLB 官方 Statcast 追蹤系統），非 FanGraphs／Baseball-Reference 資料。</p>
+    <section class="leaders-section">
+      <h2 class="leaders-section-title">打者 · Statcast</h2>
+      <div class="leaders-grid">${batterCards}</div>
+    </section>
+    <section class="leaders-section">
+      <h2 class="leaders-section-title">投手 · Statcast</h2>
+      <div class="leaders-grid">${pitcherCards}</div>
     </section>`;
 }
 
