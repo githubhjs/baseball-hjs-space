@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLB 歷史數據 | baseball.hjs.space</title>
+<meta name="description" content="MLB 歷史戰績排名、數據王與球員生涯數據查詢，任意年度，繁體中文呈現。">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/style.css?v=1">
+<meta property="og:title" content="MLB 歷史數據 | baseball.hjs.space">
+<meta property="og:description" content="MLB 歷史戰績排名、數據王與球員生涯數據查詢，任意年度，繁體中文呈現。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://baseball.hjs.space/history/">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4111341429707175" crossorigin="anonymous"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/">⚾ Baseball<span class="brand-accent">.hjs.space</span></a>
+    <nav class="site-nav">
+        <a href="/" class="nav-link">今日賽事</a>
+        <a href="/standings/" class="nav-link">戰績排名</a>
+        <a href="/leaders/" class="nav-link">數據王</a>
+        <a href="/advanced/" class="nav-link">進階數據</a>
+        <a href="/history/" class="nav-link active">歷史數據</a>
+    </nav>
+  </div>
+</header>
+<main class="page">
+
+    <h1 class="page-title">歷史數據</h1>
+    <p class="page-subtitle">選擇年度瀏覽歷史戰績、數據王，或查詢球員生涯數據。資料即時從瀏覽器直接向 MLB Stats API 查詢（官方公開資料），無需等待站內定時更新。</p>
+
+    <div class="history-tabs">
+      <button type="button" class="history-tab-btn active" data-tab="standings">戰績排名</button>
+      <button type="button" class="history-tab-btn" data-tab="leaders">數據王</button>
+      <button type="button" class="history-tab-btn" data-tab="player">球員生涯查詢</button>
+    </div>
+
+    <section class="history-panel active" data-panel="standings">
+      <div class="history-controls">
+        <label for="standings-year">年度：</label>
+        <select id="standings-year"></select>
+      </div>
+      <div id="standings-result"></div>
+    </section>
+
+    <section class="history-panel" data-panel="leaders">
+      <div class="history-controls">
+        <label for="leaders-year">年度：</label>
+        <select id="leaders-year"></select>
+      </div>
+      <div id="leaders-result"></div>
+    </section>
+
+    <section class="history-panel" data-panel="player">
+      <form id="player-search-form" class="history-controls">
+        <label for="player-search-input">球員英文姓名：</label>
+        <input id="player-search-input" type="text" placeholder="例如 Ichiro Suzuki" autocomplete="off">
+        <button type="submit" class="history-search-btn">搜尋</button>
+      </form>
+      <div id="player-search-results"></div>
+      <div id="player-career-detail"></div>
+    </section>
+</main>
+<footer class="site-footer">
+  <p>資料來源：<a href="https://statsapi.mlb.com/" target="_blank" rel="noopener">MLB Stats API</a>（官方公開數據）。本站由 GitHub Actions 定時抓取並自動產生，非官方網站，與 MLB 無關。</p>
+  <p class="updated-at">最後更新：2026年08月06日 星期四 11:32</p>
+</footer>
+<script src="/history.js?v=1" defer></script>
+</body>
+</html>

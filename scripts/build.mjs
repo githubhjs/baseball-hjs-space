@@ -19,6 +19,7 @@ import {
 } from './lib/leaders.mjs';
 import { fetchExpectedStats, fetchStatcastBattedBall, fetchSprintSpeed } from './lib/savantApi.mjs';
 import { BATTER_ADVANCED_CATS, PITCHER_ADVANCED_CATS, advancedRows, renderAdvancedCard } from './lib/advanced.mjs';
+import { renderHistoryBody } from './lib/historyPage.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -52,6 +53,7 @@ async function main() {
   await mkdir(path.join(DIST, 'standings'), { recursive: true });
   await mkdir(path.join(DIST, 'leaders'), { recursive: true });
   await mkdir(path.join(DIST, 'advanced'), { recursive: true });
+  await mkdir(path.join(DIST, 'history'), { recursive: true });
 
   await writeFile(
     path.join(DIST, 'index.html'),
@@ -97,11 +99,26 @@ async function main() {
     })
   );
 
+  await writeFile(
+    path.join(DIST, 'history', 'index.html'),
+    page({
+      title: 'MLB 歷史數據 | baseball.hjs.space',
+      description: 'MLB 歷史戰績排名、數據王與球員生涯數據查詢，任意年度，繁體中文呈現。',
+      active: 'history',
+      body: renderHistoryBody(),
+      generatedAt,
+      extraScripts: '<script src="/history.js?v=1" defer></script>',
+    })
+  );
+
   if (existsSync(path.join(ASSETS, 'style.css'))) {
     await copyFile(path.join(ASSETS, 'style.css'), path.join(DIST, 'style.css'));
   }
   if (existsSync(path.join(ASSETS, 'favicon.svg'))) {
     await copyFile(path.join(ASSETS, 'favicon.svg'), path.join(DIST, 'favicon.svg'));
+  }
+  if (existsSync(path.join(ASSETS, 'history.js'))) {
+    await copyFile(path.join(ASSETS, 'history.js'), path.join(DIST, 'history.js'));
   }
   await writeFile(
     path.join(DIST, 'robots.txt'),
@@ -109,7 +126,7 @@ async function main() {
   );
   await writeFile(
     path.join(DIST, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n  <url><loc>https://baseball.hjs.space/advanced/</loc></url>\n</urlset>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n  <url><loc>https://baseball.hjs.space/advanced/</loc></url>\n  <url><loc>https://baseball.hjs.space/history/</loc></url>\n</urlset>\n`
   );
 
   console.log(`Built ${games.length} games + ${standings.length} standings groups for ${date}.`);

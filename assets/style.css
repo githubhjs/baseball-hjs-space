@@ -308,6 +308,111 @@ a {
   font-weight: 600;
 }
 
+.history-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.history-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 10px 4px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.history-tab-btn:hover {
+  color: var(--text);
+}
+
+.history-tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.history-panel {
+  display: none;
+}
+
+.history-panel.active {
+  display: block;
+}
+
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.history-controls label {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.history-controls select,
+.history-controls input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.history-controls input {
+  min-width: 220px;
+}
+
+.history-search-btn {
+  background: var(--accent);
+  color: #1a1305;
+  border: none;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.player-search-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.player-result-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.player-result-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.career-table {
+  margin-bottom: 20px;
+}
+
 .leaders-section {
   margin-bottom: 32px;
 }

@@ -1,11 +1,12 @@
 const ADSENSE_PUBLISHER_ID = 'ca-pub-4111341429707175';
 
-export function page({ title, description, active, body, generatedAt }) {
+export function page({ title, description, active, body, generatedAt, extraScripts = '' }) {
   const nav = [
     { href: '/', label: '今日賽事', key: 'today' },
     { href: '/standings/', label: '戰績排名', key: 'standings' },
     { href: '/leaders/', label: '數據王', key: 'leaders' },
     { href: '/advanced/', label: '進階數據', key: 'advanced' },
+    { href: '/history/', label: '歷史數據', key: 'history' },
   ];
 
   const navHtml = nav
@@ -27,7 +28,7 @@ export function page({ title, description, active, body, generatedAt }) {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://baseball.hjs.space${{ standings: '/standings/', leaders: '/leaders/', advanced: '/advanced/' }[active] ?? '/'}">
+<meta property="og:url" content="https://baseball.hjs.space${{ standings: '/standings/', leaders: '/leaders/', advanced: '/advanced/', history: '/history/' }[active] ?? '/'}">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -46,6 +47,7 @@ ${body}
   <p>資料來源：<a href="https://statsapi.mlb.com/" target="_blank" rel="noopener">MLB Stats API</a>（官方公開數據）。本站由 GitHub Actions 定時抓取並自動產生，非官方網站，與 MLB 無關。</p>
   <p class="updated-at">最後更新：${generatedAt}</p>
 </footer>
+${extraScripts}
 </body>
 </html>
 `;
