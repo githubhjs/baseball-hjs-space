@@ -9,15 +9,18 @@ A Traditional-Chinese (zh-Hant) MLB data site at **https://baseball.hjs.space**.
 zero npm dependencies, rebuilt automatically on a schedule. Repo: `githubhjs/baseball-hjs-space`
 (private), local clone typically at `~/projects/baseball-hjs-space`.
 
-## Pages (5 nav sections; the schedule section is 15 physical pages)
+## Pages (6 nav sections; the schedule section is 15 physical pages)
 
 | Path | Content | Data source | Rebuilt |
 |---|---|---|---|
-| `/` + `/schedule/<YYYY-MM-DD>/` (14 more, +/-7 days) | Games/scores/probable pitchers for that date, with a date-pill nav strip | MLB Stats API `/schedule` (one range query) | Every 15 min (static build) |
-| `/standings/` | Full league standings, all 6 divisions | MLB Stats API `/standings` | Every 15 min (static build) |
+| `/` + `/schedule/<YYYY-MM-DD>/` (14 more, +/-7 days) | Games/scores/probable pitchers for that date, with a date-pill nav strip. Each card: real team logos, always-visible Taipei start time, pitcher W-L records on decisions, home-run hitters+counts | MLB Stats API `/schedule` (one range query) + per-game `/boxscore` for Final/Live games | Every 15 min (static build) |
+| `/standings/` | Full league standings (all 6 divisions) + wild card race per league | MLB Stats API `/standings` (regularSeason + wildCard types) | Every 15 min (static build) |
+| `/postseason/` | "If the season ended today" bracket projection (3 division winners + 3 wild cards per league, seeded, wild-card round matchups) | Same standings data as above | Every 15 min (static build) |
 | `/leaders/` | Player + team stat leaderboards (current season) | MLB Stats API `/stats/leaders`, `/teams/stats` | Every 15 min (static build) |
 | `/advanced/` | Official Statcast advanced stats (xwOBA, xERA, exit velo, barrel%, sprint speed) | Baseball Savant CSV exports | Every 15 min (static build) |
 | `/history/` | Any season 1901–present: standings, leaders, player career lookup | MLB Stats API, called **client-side** | Live, on every page view (not baked into the build) |
+
+Every page also has an auto/dark/light theme toggle in the nav (see `site-theme-toggle` skill).
 
 ## Architecture
 
@@ -34,8 +37,12 @@ zero npm dependencies, rebuilt automatically on a schedule. Repo: `githubhjs/bas
   directly from the visitor's browser (confirmed `Access-Control-Allow-Origin: *` on both
   `statsapi.mlb.com` and `baseballsavant.mlb.com`). Historical data never changes, so pre-baking
   hundreds of yearly static pages would be pure waste — this is deliberate, not a shortcut.
-- **Styling**: single `assets/style.css`, dark "scoreboard" aesthetic (deliberately distinct from
-  the retro-desktop look of hjs.space/solarsystem.hjs.space — this site targets general MLB fans).
+- **Styling**: single `assets/style.css`, dark "scoreboard" aesthetic by default (deliberately
+  distinct from the retro-desktop look of hjs.space/solarsystem.hjs.space — this site targets
+  general MLB fans), with a real light palette + auto/dark/light 3-state toggle in the nav (see the
+  `site-theme-toggle` Claude Code skill — this is a standing cross-site requirement across all
+  `*.hjs.space` properties, not specific to this project). Team logos come from
+  `mlbstatic.com/team-logos/{id}.svg` (official MLB CDN).
 - **`dist/`** is committed to git (not gitignored) — Cloudflare Pages serves it directly with
   `build_config.destination_dir: "dist"` and `build_command: ""` (no build step on Cloudflare's
   side; the build already happened before the commit).
@@ -104,6 +111,25 @@ both is harmless — the workflow is idempotent, and `concurrency: cancel-in-pro
   grouping for a Taiwan-facing display. The build fetches a couple of extra padding days
   (`fetchStart`/`fetchEnd` in `build.mjs`) specifically to have enough raw data on hand after
   re-bucketing shifts things by a day.
+- **Pitcher W-L records and per-game home runs come from each game's `/boxscore` endpoint, not the
+  schedule endpoint.** `scripts/lib/boxscore.mjs` fetches this only for Final/Live games (Preview
+  games have no `seasonStats.pitching`/per-game `stats.batting.homeRuns` yet) using
+  `Promise.allSettled`, not `Promise.all` — one game's boxscore failing must not blank out every
+  other card on the page. Benchmarked at ~50 concurrent distinct-game fetches in ~8s with zero
+  failures, so fetching all Final/Live games in the 15-day window (~100-115 on a typical day) is
+  fine within a 15-minute build cycle.
+- **Postseason seeding uses the API's own `divisionRank`/`wildCardRank` fields, not hand-computed
+  tiebreakers** (`scripts/lib/postseason.mjs`) — division winners are seeds 1-3 ranked by record
+  *among themselves only*, wild cards are seeds 4-6 by `wildCardRank`. This means a division winner
+  with a worse overall record than a wild-card team still outranks it — that's the real 2022+ MLB
+  rule, not a bug, if it looks surprising when reviewing the bracket.
+- **`minmax(460px, 1fr)` in a CSS grid overflows on mobile** — found on `.standings-grid` and
+  `.postseason-grid` via an actual mobile screenshot (a static desktop-only review missed it).
+  `minmax(460px, 1fr)` forces a track that can never shrink below 460px, so a 390px viewport gets a
+  horizontal-scrolling page instead of a stacked single column. Fixed with
+  `minmax(min(460px, 100%), 1fr)`, which clamps the minimum to the container's own width. Check any
+  future `minmax(<fixed-px>, 1fr)` grid the same way — this class of bug only shows up on an actual
+  narrow-viewport screenshot, not in code review.
 - **FanGraphs and Baseball-Reference are both fully blocked** (Cloudflare bot-challenge, 403 "Just a
   moment..." on every endpoint including their internal APIs) — confirmed by direct testing, not
   assumption. This is *why* `/advanced/` uses Baseball Savant instead: Savant
