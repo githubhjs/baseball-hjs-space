@@ -28,6 +28,7 @@ import {
 import { fetchExpectedStats, fetchStatcastBattedBall, fetchSprintSpeed } from './lib/savantApi.mjs';
 import { BATTER_ADVANCED_CATS, PITCHER_ADVANCED_CATS, advancedRows, renderAdvancedCard } from './lib/advanced.mjs';
 import { renderHistoryBody } from './lib/historyPage.mjs';
+import { fetchBoxscoresByGamePk } from './lib/boxscore.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -76,6 +77,15 @@ async function main() {
     }
   }
 
+  // Pitcher win-loss records + this-game home runs both come from each
+  // game's boxscore, not the schedule endpoint -- only fetch it for games
+  // that actually have decided/in-progress data (Preview games have none).
+  const boxscoreGamePks = [...gamesByDate.values()]
+    .flat()
+    .filter((g) => g.status.abstractGameState === 'Final' || g.status.abstractGameState === 'Live')
+    .map((g) => g.gamePk);
+  const boxscoresByGamePk = await fetchBoxscoresByGamePk(boxscoreGamePks);
+
   const standingsBody = renderStandingsBody(standings);
   const leadersBody = renderLeadersBody({ playerBatting, playerPitching, teamBatting, teamPitching });
   const advancedBody = await buildAdvancedBody(season);
@@ -91,7 +101,7 @@ async function main() {
     const games = (gamesByDate.get(d) ?? []).slice().sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
     totalGames += games.length;
     const isToday = d === date;
-    const body = renderScheduleDayBody(d, games, windowDates, date);
+    const body = renderScheduleDayBody(d, games, windowDates, date, boxscoresByGamePk);
     const outPath = isToday
       ? path.join(DIST, 'index.html')
       : path.join(DIST, 'schedule', d, 'index.html');
@@ -180,7 +190,7 @@ async function main() {
   console.log(`Built ${totalGames} games across ${windowDates.length} days + ${standings.length} standings groups.`);
 }
 
-function renderScheduleDayBody(dateStr, games, windowDates, todayDate) {
+function renderScheduleDayBody(dateStr, games, windowDates, todayDate, boxscoresByGamePk) {
   const nav = renderDateNav(windowDates, dateStr, todayDate);
   const heading = dateStr === todayDate ? '今日賽事' : `${dateLabel(dateStr)} 賽事`;
   if (games.length === 0) {
@@ -189,7 +199,7 @@ function renderScheduleDayBody(dateStr, games, windowDates, todayDate) {
     ${nav}
     <p class="empty-state">${dateStr} 沒有安排 MLB 賽事。</p>`;
   }
-  const cards = games.map(renderGameCard).join('\n');
+  const cards = games.map((g) => renderGameCard(g, boxscoresByGamePk.get(g.gamePk))).join('\n');
   return `
     <h1 class="page-title">${heading}</h1>
     ${nav}

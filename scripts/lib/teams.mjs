@@ -36,3 +36,9 @@ export const TEAMS = {
 export function teamInfo(id) {
   return TEAMS[id] || { full: `未知隊伍 #${id}`, short: `#${id}`, abbr: '???', color: '#555555' };
 }
+
+// MLB's own official team-logo CDN -- same asset ESPN/other MLB-data sites
+// reference directly, no auth, one URL per team id.
+export function teamLogoUrl(id) {
+  return `https://www.mlbstatic.com/team-logos/${id}.svg`;
+}

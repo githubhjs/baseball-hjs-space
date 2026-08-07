@@ -254,6 +254,20 @@ a {
   flex-shrink: 0;
 }
 
+.team-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.game-inning {
+  font-size: 0.8rem;
+  color: var(--live);
+  font-weight: 600;
+  margin: -2px 0 8px;
+}
+
 .team-name {
   font-weight: 600;
   flex: 1;
@@ -268,10 +282,15 @@ a {
 }
 
 .game-decisions,
-.game-probable {
+.game-probable,
+.game-homeruns {
   font-size: 0.82rem;
   color: var(--text-dim);
   margin: 0;
+}
+
+.game-homeruns {
+  margin-top: 6px;
 }
 
 .game-venue {
