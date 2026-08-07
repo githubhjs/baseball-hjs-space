@@ -123,6 +123,14 @@ both is harmless — the workflow is idempotent, and `concurrency: cancel-in-pro
   *among themselves only*, wild cards are seeds 4-6 by `wildCardRank`. This means a division winner
   with a worse overall record than a wild-card team still outranks it — that's the real 2022+ MLB
   rule, not a bug, if it looks surprising when reviewing the bracket.
+- **`/postseason/` renders an actual bracket tree, not a matchup list** (rebuilt 2026-08-07 after
+  user feedback that a stacked-cards layout "so lame, no bracket figure"). Wild Card round ->
+  Division Series -> Championship Series per league, connected with CSS bracket-connector lines
+  (`.bracket-pair::after` draws a "⊐" shape bridging each pair of matches to the single next-round
+  slot — this only needs `position:relative` + an absolutely-positioned pseudo-element with
+  `border` on 3 sides, no SVG/JS needed), plus a concluding World Series section. Only the Wild
+  Card round has real teams; everything past it is an honest "待定" (TBD) placeholder, since who
+  wins each series obviously isn't known yet — don't be tempted to fill those in with a guess.
 - **Team-logo `<img>` tags need explicit `width`/`height` HTML attributes, not just CSS.** Without
   them, a browser that hasn't finished loading `style.css` yet (slow connection, or the usual
   post-deploy edge-cache-lag window) renders the raw SVG at its native intrinsic size (~112px,
