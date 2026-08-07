@@ -42,6 +42,12 @@ export async function fetchStandings(season) {
   return data.records ?? [];
 }
 
+export async function fetchWildCardStandings(season) {
+  const url = `${BASE}/standings?leagueId=103,104&season=${season}&standingsTypes=wildCard`;
+  const data = await getJson(url);
+  return data.records ?? [];
+}
+
 export async function fetchPlayerLeaders(season, categories, statGroup) {
   const url = `${BASE}/stats/leaders?leaderCategories=${categories.join(',')}&season=${season}&sportId=1&statGroup=${statGroup}&limit=10`;
   const data = await getJson(url);

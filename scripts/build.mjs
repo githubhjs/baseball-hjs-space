@@ -6,13 +6,15 @@ import { fileURLToPath } from 'node:url';
 import {
   fetchScheduleRange,
   fetchStandings,
+  fetchWildCardStandings,
   fetchPlayerLeaders,
   fetchTeamStats,
   todayOfficialDate,
   offsetDate,
 } from './lib/mlbApi.mjs';
 import { renderGameCard } from './lib/gameCard.mjs';
-import { renderDivisionTable } from './lib/standingsTable.mjs';
+import { renderDivisionTable, renderWildCardTable } from './lib/standingsTable.mjs';
+import { computeBracket, renderPostseasonBody } from './lib/postseason.mjs';
 import { page } from './lib/layout.mjs';
 import { taipeiDateStamp, taipeiDateKey, dateLabel } from './lib/format.mjs';
 import { renderDateNav } from './lib/dateNav.mjs';
@@ -55,9 +57,10 @@ async function main() {
   const fetchStart = offsetDate(rangeStart, -2);
   const fetchEnd = offsetDate(rangeEnd, 1);
 
-  const [rawGamesByDate, standings, playerBatting, playerPitching, teamBatting, teamPitching] = await Promise.all([
+  const [rawGamesByDate, standings, wildCardStandings, playerBatting, playerPitching, teamBatting, teamPitching] = await Promise.all([
     fetchScheduleRange(fetchStart, fetchEnd),
     fetchStandings(season),
+    fetchWildCardStandings(season),
     fetchPlayerLeaders(season, PLAYER_BATTING_CATS.map((c) => c.key), 'hitting'),
     fetchPlayerLeaders(season, PLAYER_PITCHING_CATS.map((c) => c.key), 'pitching'),
     fetchTeamStats(season, 'hitting'),
@@ -86,15 +89,17 @@ async function main() {
     .map((g) => g.gamePk);
   const boxscoresByGamePk = await fetchBoxscoresByGamePk(boxscoreGamePks);
 
-  const standingsBody = renderStandingsBody(standings);
+  const standingsBody = renderStandingsBody(standings, wildCardStandings);
   const leadersBody = renderLeadersBody({ playerBatting, playerPitching, teamBatting, teamPitching });
   const advancedBody = await buildAdvancedBody(season);
+  const postseasonBody = renderPostseasonBody(computeBracket(standings, wildCardStandings));
 
   await mkdir(DIST, { recursive: true });
   await mkdir(path.join(DIST, 'standings'), { recursive: true });
   await mkdir(path.join(DIST, 'leaders'), { recursive: true });
   await mkdir(path.join(DIST, 'advanced'), { recursive: true });
   await mkdir(path.join(DIST, 'history'), { recursive: true });
+  await mkdir(path.join(DIST, 'postseason'), { recursive: true });
 
   let totalGames = 0;
   for (const d of windowDates) {
@@ -166,6 +171,17 @@ async function main() {
     })
   );
 
+  await writeFile(
+    path.join(DIST, 'postseason', 'index.html'),
+    page({
+      title: 'MLB 季後賽推算 | baseball.hjs.space',
+      description: '假設賽季今日結束，美聯／國聯季後賽對戰組合即時推算，繁體中文呈現。',
+      active: 'postseason',
+      body: postseasonBody,
+      generatedAt,
+    })
+  );
+
   if (existsSync(path.join(ASSETS, 'style.css'))) {
     await copyFile(path.join(ASSETS, 'style.css'), path.join(DIST, 'style.css'));
   }
@@ -184,7 +200,7 @@ async function main() {
     .join('');
   await writeFile(
     path.join(DIST, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n${scheduleUrls}  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n  <url><loc>https://baseball.hjs.space/advanced/</loc></url>\n  <url><loc>https://baseball.hjs.space/history/</loc></url>\n</urlset>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n${scheduleUrls}  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/postseason/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n  <url><loc>https://baseball.hjs.space/advanced/</loc></url>\n  <url><loc>https://baseball.hjs.space/history/</loc></url>\n</urlset>\n`
   );
 
   console.log(`Built ${totalGames} games across ${windowDates.length} days + ${standings.length} standings groups.`);
@@ -206,7 +222,7 @@ function renderScheduleDayBody(dateStr, games, windowDates, todayDate, boxscores
     <div class="game-grid">${cards}</div>`;
 }
 
-function renderStandingsBody(standings) {
+function renderStandingsBody(standings, wildCardStandings) {
   const byDivision = new Map();
   for (const record of standings) {
     byDivision.set(record.division.id, record);
@@ -219,9 +235,15 @@ function renderStandingsBody(standings) {
     })
     .join('\n');
 
+  const wildCardSections = wildCardStandings
+    .map((record) => renderWildCardTable(record.league.id, record.teamRecords))
+    .join('\n');
+
   return `
     <h1 class="page-title">戰績排名</h1>
-    <div class="standings-grid">${sections}</div>`;
+    <div class="standings-grid">${sections}</div>
+    <h2 class="leaders-section-title" style="margin-top:32px">外卡戰況</h2>
+    <div class="standings-grid">${wildCardSections}</div>`;
 }
 
 function renderLeadersBody({ playerBatting, playerPitching, teamBatting, teamPitching }) {

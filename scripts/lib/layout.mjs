@@ -4,6 +4,7 @@ export function page({ title, description, active, body, generatedAt, extraScrip
   const nav = [
     { href: '/', label: '今日賽事', key: 'today' },
     { href: '/standings/', label: '戰績排名', key: 'standings' },
+    { href: '/postseason/', label: '季後賽', key: 'postseason' },
     { href: '/leaders/', label: '數據王', key: 'leaders' },
     { href: '/advanced/', label: '進階數據', key: 'advanced' },
     { href: '/history/', label: '歷史數據', key: 'history' },
@@ -28,7 +29,7 @@ export function page({ title, description, active, body, generatedAt, extraScrip
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://baseball.hjs.space${canonicalPath ?? { standings: '/standings/', leaders: '/leaders/', advanced: '/advanced/', history: '/history/' }[active] ?? '/'}">
+<meta property="og:url" content="https://baseball.hjs.space${canonicalPath ?? { standings: '/standings/', postseason: '/postseason/', leaders: '/leaders/', advanced: '/advanced/', history: '/history/' }[active] ?? '/'}">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}" crossorigin="anonymous"></script>
 </head>
 <body>
