@@ -123,6 +123,15 @@ both is harmless — the workflow is idempotent, and `concurrency: cancel-in-pro
   *among themselves only*, wild cards are seeds 4-6 by `wildCardRank`. This means a division winner
   with a worse overall record than a wild-card team still outranks it — that's the real 2022+ MLB
   rule, not a bug, if it looks surprising when reviewing the bracket.
+- **Team-logo `<img>` tags need explicit `width`/`height` HTML attributes, not just CSS.** Without
+  them, a browser that hasn't finished loading `style.css` yet (slow connection, or the usual
+  post-deploy edge-cache-lag window) renders the raw SVG at its native intrinsic size (~112px,
+  confirmed) instead of the intended 22px/18px, until the stylesheet catches up — visible as a
+  flash of huge logos. Confirmed the fix (adding `width="22" height="22"` etc. to every `<img
+  class="team-logo...">` in `gameCard.mjs`/`standingsTable.mjs`/`postseason.mjs`) by blocking
+  `style.css` entirely in a Playwright test and checking the rendered box was still 22×22 — this is
+  a real regression class (CSS-only image sizing) worth checking for on any future `<img>` added to
+  this site, not just team logos.
 - **`minmax(460px, 1fr)` in a CSS grid overflows on mobile** — found on `.standings-grid` and
   `.postseason-grid` via an actual mobile screenshot (a static desktop-only review missed it).
   `minmax(460px, 1fr)` forces a track that can never shrink below 460px, so a 390px viewport gets a
