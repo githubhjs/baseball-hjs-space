@@ -1,6 +1,6 @@
 const ADSENSE_PUBLISHER_ID = 'ca-pub-4111341429707175';
 
-export function page({ title, description, active, body, generatedAt, extraScripts = '' }) {
+export function page({ title, description, active, body, generatedAt, extraScripts = '', canonicalPath }) {
   const nav = [
     { href: '/', label: '今日賽事', key: 'today' },
     { href: '/standings/', label: '戰績排名', key: 'standings' },
@@ -28,7 +28,7 @@ export function page({ title, description, active, body, generatedAt, extraScrip
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://baseball.hjs.space${{ standings: '/standings/', leaders: '/leaders/', advanced: '/advanced/', history: '/history/' }[active] ?? '/'}">
+<meta property="og:url" content="https://baseball.hjs.space${canonicalPath ?? { standings: '/standings/', leaders: '/leaders/', advanced: '/advanced/', history: '/history/' }[active] ?? '/'}">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}" crossorigin="anonymous"></script>
 </head>
 <body>

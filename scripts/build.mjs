@@ -3,11 +3,19 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { fetchSchedule, fetchStandings, fetchPlayerLeaders, fetchTeamStats, todayOfficialDate } from './lib/mlbApi.mjs';
+import {
+  fetchScheduleRange,
+  fetchStandings,
+  fetchPlayerLeaders,
+  fetchTeamStats,
+  todayOfficialDate,
+  offsetDate,
+} from './lib/mlbApi.mjs';
 import { renderGameCard } from './lib/gameCard.mjs';
 import { renderDivisionTable } from './lib/standingsTable.mjs';
 import { page } from './lib/layout.mjs';
-import { taipeiDateStamp } from './lib/format.mjs';
+import { taipeiDateStamp, taipeiDateKey, dateLabel } from './lib/format.mjs';
+import { renderDateNav } from './lib/dateNav.mjs';
 import {
   PLAYER_BATTING_CATS,
   PLAYER_PITCHING_CATS,
@@ -28,13 +36,26 @@ const ASSETS = path.join(ROOT, 'assets');
 
 const DIVISION_ORDER = [201, 202, 200, 204, 205, 203]; // AL East/Central/West, NL East/Central/West
 
-async function main() {
-  const date = todayOfficialDate();
-  const season = date.slice(0, 4);
-  const generatedAt = taipeiDateStamp(new Date().toISOString());
+const SCHEDULE_WINDOW_DAYS = 7; // days before/after today shown in the date-nav strip
 
-  const [games, standings, playerBatting, playerPitching, teamBatting, teamPitching] = await Promise.all([
-    fetchSchedule(date),
+async function main() {
+  const date = taipeiDateKey(new Date().toISOString()); // "today" means today in Taipei, not US officialDate
+  const season = todayOfficialDate().slice(0, 4);
+  const generatedAt = taipeiDateStamp(new Date().toISOString());
+  const rangeStart = offsetDate(date, -SCHEDULE_WINDOW_DAYS);
+  const rangeEnd = offsetDate(date, SCHEDULE_WINDOW_DAYS);
+  const windowDates = [];
+  for (let d = rangeStart; d <= rangeEnd; d = offsetDate(d, 1)) windowDates.push(d);
+
+  // Fetch a couple of extra days of US-officialDate padding on each side: a
+  // US game's officialDate almost always lands one Taipei calendar date
+  // later once converted, so the raw fetch window must be shifted/padded to
+  // fully cover the Taipei-anchored window after re-bucketing below.
+  const fetchStart = offsetDate(rangeStart, -2);
+  const fetchEnd = offsetDate(rangeEnd, 1);
+
+  const [rawGamesByDate, standings, playerBatting, playerPitching, teamBatting, teamPitching] = await Promise.all([
+    fetchScheduleRange(fetchStart, fetchEnd),
     fetchStandings(season),
     fetchPlayerLeaders(season, PLAYER_BATTING_CATS.map((c) => c.key), 'hitting'),
     fetchPlayerLeaders(season, PLAYER_PITCHING_CATS.map((c) => c.key), 'pitching'),
@@ -42,9 +63,19 @@ async function main() {
     fetchTeamStats(season, 'pitching'),
   ]);
 
-  games.sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
+  // Re-bucket every game by its real Taipei calendar date (derived from the
+  // actual game instant), not the US officialDate bucket the API grouped it
+  // under -- otherwise the date-nav label and the game times shown under it
+  // disagree (verified: nearly every game shifts +1 day once converted).
+  const gamesByDate = new Map();
+  for (const games of rawGamesByDate.values()) {
+    for (const game of games) {
+      const key = taipeiDateKey(game.gameDate);
+      if (!gamesByDate.has(key)) gamesByDate.set(key, []);
+      gamesByDate.get(key).push(game);
+    }
+  }
 
-  const todayBody = renderTodayBody(games, date);
   const standingsBody = renderStandingsBody(standings);
   const leadersBody = renderLeadersBody({ playerBatting, playerPitching, teamBatting, teamPitching });
   const advancedBody = await buildAdvancedBody(season);
@@ -55,16 +86,30 @@ async function main() {
   await mkdir(path.join(DIST, 'advanced'), { recursive: true });
   await mkdir(path.join(DIST, 'history'), { recursive: true });
 
-  await writeFile(
-    path.join(DIST, 'index.html'),
-    page({
-      title: 'MLB 今日賽事即時比分 | baseball.hjs.space',
-      description: 'MLB 美國職棒大聯盟今日賽事、即時比分與戰績，繁體中文呈現。',
-      active: 'today',
-      body: todayBody,
-      generatedAt,
-    })
-  );
+  let totalGames = 0;
+  for (const d of windowDates) {
+    const games = (gamesByDate.get(d) ?? []).slice().sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
+    totalGames += games.length;
+    const isToday = d === date;
+    const body = renderScheduleDayBody(d, games, windowDates, date);
+    const outPath = isToday
+      ? path.join(DIST, 'index.html')
+      : path.join(DIST, 'schedule', d, 'index.html');
+    if (!isToday) await mkdir(path.join(DIST, 'schedule', d), { recursive: true });
+    await writeFile(
+      outPath,
+      page({
+        title: isToday
+          ? 'MLB 今日賽事即時比分 | baseball.hjs.space'
+          : `MLB ${dateLabel(d)} 賽事 | baseball.hjs.space`,
+        description: `MLB 美國職棒大聯盟 ${dateLabel(d)} 賽事、比分與戰況，繁體中文呈現。`,
+        active: 'today',
+        body,
+        generatedAt,
+        canonicalPath: isToday ? '/' : `/schedule/${d}/`,
+      })
+    );
+  }
 
   await writeFile(
     path.join(DIST, 'standings', 'index.html'),
@@ -124,23 +169,30 @@ async function main() {
     path.join(DIST, 'robots.txt'),
     'User-agent: *\nAllow: /\nSitemap: https://baseball.hjs.space/sitemap.xml\n'
   );
+  const scheduleUrls = windowDates
+    .map((d) => (d === date ? '' : `  <url><loc>https://baseball.hjs.space/schedule/${d}/</loc></url>\n`))
+    .join('');
   await writeFile(
     path.join(DIST, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n  <url><loc>https://baseball.hjs.space/advanced/</loc></url>\n  <url><loc>https://baseball.hjs.space/history/</loc></url>\n</urlset>\n`
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://baseball.hjs.space/</loc></url>\n${scheduleUrls}  <url><loc>https://baseball.hjs.space/standings/</loc></url>\n  <url><loc>https://baseball.hjs.space/leaders/</loc></url>\n  <url><loc>https://baseball.hjs.space/advanced/</loc></url>\n  <url><loc>https://baseball.hjs.space/history/</loc></url>\n</urlset>\n`
   );
 
-  console.log(`Built ${games.length} games + ${standings.length} standings groups for ${date}.`);
+  console.log(`Built ${totalGames} games across ${windowDates.length} days + ${standings.length} standings groups.`);
 }
 
-function renderTodayBody(games, date) {
+function renderScheduleDayBody(dateStr, games, windowDates, todayDate) {
+  const nav = renderDateNav(windowDates, dateStr, todayDate);
+  const heading = dateStr === todayDate ? '今日賽事' : `${dateLabel(dateStr)} 賽事`;
   if (games.length === 0) {
     return `
-    <h1 class="page-title">今日賽事</h1>
-    <p class="empty-state">${date} 沒有安排 MLB 賽事。</p>`;
+    <h1 class="page-title">${heading}</h1>
+    ${nav}
+    <p class="empty-state">${dateStr} 沒有安排 MLB 賽事。</p>`;
   }
   const cards = games.map(renderGameCard).join('\n');
   return `
-    <h1 class="page-title">今日賽事</h1>
+    <h1 class="page-title">${heading}</h1>
+    ${nav}
     <div class="game-grid">${cards}</div>`;
 }
 
