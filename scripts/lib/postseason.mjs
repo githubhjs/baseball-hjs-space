@@ -50,7 +50,7 @@ function seedCard(team, seedNumber) {
   return `
   <div class="seed-card">
     <span class="seed-number">#${seedNumber}</span>
-    <img class="team-logo-sm" src="${teamLogoUrl(team.team.id)}" alt="" loading="lazy" onerror="this.style.display='none'">
+    <img class="team-logo-sm" src="${teamLogoUrl(team.team.id)}" alt="" width="18" height="18" loading="lazy" onerror="this.style.display='none'">
     <span class="seed-team-name">${escapeHtml(info.full)}</span>
     <span class="seed-record">${team.leagueRecord.wins}-${team.leagueRecord.losses}</span>
   </div>`;

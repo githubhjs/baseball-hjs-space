@@ -15,7 +15,7 @@ function lastTen(record) {
 
 function teamCell(teamId) {
   const team = teamInfo(teamId);
-  return `<img class="team-logo-sm" src="${teamLogoUrl(teamId)}" alt="" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"><span class="team-color-dot" style="background:${team.color};display:none"></span>${team.full}`;
+  return `<img class="team-logo-sm" src="${teamLogoUrl(teamId)}" alt="" width="18" height="18" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"><span class="team-color-dot" style="background:${team.color};display:none"></span>${team.full}`;
 }
 
 export function renderDivisionTable(division, teamRecords) {

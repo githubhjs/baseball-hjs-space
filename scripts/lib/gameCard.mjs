@@ -24,7 +24,7 @@ function statusBadge(status) {
 }
 
 function teamLogo(team) {
-  return `<img class="team-logo" src="${teamLogoUrl(team.id)}" alt="" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"><span class="team-color-dot" style="background:${team.info.color};display:none"></span>`;
+  return `<img class="team-logo" src="${teamLogoUrl(team.id)}" alt="" width="22" height="22" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';"><span class="team-color-dot" style="background:${team.info.color};display:none"></span>`;
 }
 
 function recordSuffix(person, pitcherRecords) {
