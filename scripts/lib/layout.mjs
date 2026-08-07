@@ -22,6 +22,14 @@ export function page({ title, description, active, body, generatedAt, extraScrip
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
 <title>${title}</title>
 <meta name="description" content="${description}">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -38,9 +46,30 @@ export function page({ title, description, active, body, generatedAt, extraScrip
     <a class="brand" href="/">⚾ Baseball<span class="brand-accent">.hjs.space</span></a>
     <nav class="site-nav">
         ${navHtml}
+        <button id="theme-toggle" class="theme-toggle" onclick="cycleTheme()" aria-label="切換深色／淺色主題" type="button"></button>
     </nav>
   </div>
 </header>
+<script>
+  function cycleTheme() {
+    var current = localStorage.getItem("theme"); // null = auto, "light", "dark"
+    var next = current === null ? "dark" : current === "dark" ? "light" : null;
+    if (next === null) {
+      localStorage.removeItem("theme");
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      localStorage.setItem("theme", next);
+      document.documentElement.setAttribute("data-theme", next);
+    }
+    updateThemeToggleLabel();
+  }
+  function updateThemeToggleLabel() {
+    var t = localStorage.getItem("theme");
+    var btn = document.getElementById("theme-toggle");
+    if (btn) btn.textContent = t === "dark" ? "\u{1F319} 深色" : t === "light" ? "☀️ 淺色" : "\u{1F313} 自動";
+  }
+  updateThemeToggleLabel();
+</script>
 <main class="page">
 ${body}
 </main>

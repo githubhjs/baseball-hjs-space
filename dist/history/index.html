@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
 <title>MLB 歷史數據 | baseball.hjs.space</title>
 <meta name="description" content="MLB 歷史戰績排名、數據王與球員生涯數據查詢，任意年度，繁體中文呈現。">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -24,9 +32,30 @@
         <a href="/leaders/" class="nav-link">數據王</a>
         <a href="/advanced/" class="nav-link">進階數據</a>
         <a href="/history/" class="nav-link active">歷史數據</a>
+        <button id="theme-toggle" class="theme-toggle" onclick="cycleTheme()" aria-label="切換深色／淺色主題" type="button"></button>
     </nav>
   </div>
 </header>
+<script>
+  function cycleTheme() {
+    var current = localStorage.getItem("theme"); // null = auto, "light", "dark"
+    var next = current === null ? "dark" : current === "dark" ? "light" : null;
+    if (next === null) {
+      localStorage.removeItem("theme");
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      localStorage.setItem("theme", next);
+      document.documentElement.setAttribute("data-theme", next);
+    }
+    updateThemeToggleLabel();
+  }
+  function updateThemeToggleLabel() {
+    var t = localStorage.getItem("theme");
+    var btn = document.getElementById("theme-toggle");
+    if (btn) btn.textContent = t === "dark" ? "🌙 深色" : t === "light" ? "☀️ 淺色" : "🌓 自動";
+  }
+  updateThemeToggleLabel();
+</script>
 <main class="page">
 
     <h1 class="page-title">歷史數據</h1>
@@ -66,7 +95,7 @@
 </main>
 <footer class="site-footer">
   <p>資料來源：<a href="https://statsapi.mlb.com/" target="_blank" rel="noopener">MLB Stats API</a>（官方公開數據）。本站由 GitHub Actions 定時抓取並自動產生，非官方網站，與 MLB 無關。</p>
-  <p class="updated-at">最後更新：2026年08月07日 星期五 12:02</p>
+  <p class="updated-at">最後更新：2026年08月07日 星期五 12:06</p>
 </footer>
 <script src="/history.js?v=1" defer></script>
 </body>
