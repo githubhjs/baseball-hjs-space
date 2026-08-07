@@ -9,11 +9,11 @@ A Traditional-Chinese (zh-Hant) MLB data site at **https://baseball.hjs.space**.
 zero npm dependencies, rebuilt automatically on a schedule. Repo: `githubhjs/baseball-hjs-space`
 (private), local clone typically at `~/projects/baseball-hjs-space`.
 
-## Pages (5 total)
+## Pages (5 nav sections; the schedule section is 15 physical pages)
 
 | Path | Content | Data source | Rebuilt |
 |---|---|---|---|
-| `/` | Today's games, live-ish scores, probable pitchers | MLB Stats API `/schedule` | Every 15 min (static build) |
+| `/` + `/schedule/<YYYY-MM-DD>/` (14 more, +/-7 days) | Games/scores/probable pitchers for that date, with a date-pill nav strip | MLB Stats API `/schedule` (one range query) | Every 15 min (static build) |
 | `/standings/` | Full league standings, all 6 divisions | MLB Stats API `/standings` | Every 15 min (static build) |
 | `/leaders/` | Player + team stat leaderboards (current season) | MLB Stats API `/stats/leaders`, `/teams/stats` | Every 15 min (static build) |
 | `/advanced/` | Official Statcast advanced stats (xwOBA, xERA, exit velo, barrel%, sprint speed) | Baseball Savant CSV exports | Every 15 min (static build) |
@@ -94,6 +94,16 @@ both is harmless — the workflow is idempotent, and `concurrency: cancel-in-pro
 
 ## Known gotchas / lessons (don't re-discover these)
 
+- **US officialDate != Taipei calendar date — nearly always off by one.** MLB's schedule API groups
+  games by a US "officialDate", but this site displays everything in Taipei time (UTC+8), which is
+  far enough ahead of every US timezone that almost every game's real Taipei date is the *US date
+  plus one*. Grouping/labeling by the API's officialDate bucket (what the original single-day
+  version did) makes the date-nav label and the game times shown under it visibly disagree. Fixed
+  by `taipeiDateKey()` in `format.mjs`, which re-buckets every individual game by the real Taipei
+  calendar date computed from its actual `gameDate` instant — never trust the API's own date
+  grouping for a Taiwan-facing display. The build fetches a couple of extra padding days
+  (`fetchStart`/`fetchEnd` in `build.mjs`) specifically to have enough raw data on hand after
+  re-bucketing shifts things by a day.
 - **FanGraphs and Baseball-Reference are both fully blocked** (Cloudflare bot-challenge, 403 "Just a
   moment..." on every endpoint including their internal APIs) — confirmed by direct testing, not
   assumption. This is *why* `/advanced/` uses Baseball Savant instead: Savant
