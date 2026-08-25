@@ -5,9 +5,10 @@ this up cold with zero conversation history. If you're continuing work here, rea
 
 ## What this is
 
-A Traditional-Chinese (zh-Hant) MLB data site at **https://baseball.hjs.space**. Static site,
-zero npm dependencies, rebuilt automatically on a schedule. Repo: `githubhjs/baseball-hjs-space`
-(private), local clone typically at `~/projects/baseball-hjs-space`.
+A Traditional-Chinese (zh-Hant) MLB data site at **https://baseball.hjs.space** (alias:
+**mlb.hjs.space**). Static site, zero npm dependencies, rebuilt automatically on a schedule. Repo:
+`githubhjs/baseball-hjs-space` (**public** since 2026-08-25 — was private, see the billing incident
+below for why), local clone typically at `~/projects/baseball-hjs-space`.
 
 ## Pages (6 nav sections; the schedule section is 15 physical pages)
 
@@ -217,3 +218,35 @@ both is harmless — the workflow is idempotent, and `concurrency: cancel-in-pro
 - GitHub: `gh auth status` — logged in as `githubhjs` account, used for all `gh` commands above.
 - Google AdSense publisher ID `ca-pub-4111341429707175`: reused from `hjs.space` (see
   `project_personal_websites` memory) — no new AdSense account needed.
+
+## Incident: repo made public 2026-08-25 (account-wide Actions billing lockout)
+
+**Symptom**: site froze at 2026-08-22 00:20 (Taipei), every `Update MLB data` run failed instantly
+from 2026-08-21T16:30:03Z onward with *"recent account payments have failed or your spending limit
+needs to be increased."*
+
+**Root cause**: account-wide (`githubhjs`), not specific to this repo — a separate fork
+(`githubhjs/vscode`) had inherited `microsoft/vscode`'s full CI setup and was burning ~5 hours/day
+on a forgotten scheduled job (3,847 min in August). This repo's own `*/15 * * * *` cron, doubled up
+by the GX10 crontab backstop (see the scheduler incident further up this doc), added another 1,993
+private-repo minutes. Full billing-line-item pull (`gh api users/githubhjs/settings/billing/usage`)
+showed every minute for both repos was fully discounted (`netAmount: $0`) right up to 2026-08-21 —
+the lockout looks like an actual payment-method failure, not a "ran out of included minutes" cutoff
+that the discount data alone would produce.
+
+**Fix**: disabled Actions entirely on the `vscode` fork
+(`gh api -X PUT repos/githubhjs/vscode/actions/permissions -F enabled=false`), and made **this
+repo public** (`gh repo edit githubhjs/baseball-hjs-space --visibility public`) — public repos get
+unlimited free Actions minutes on GitHub-hosted runners, which fully sidesteps the private-repo
+quota for this workload going forward.
+
+**Security audit done before flipping visibility** (don't re-skip this if this repo is ever forked
+or copied): full `git log -p --all` (1,992 commits) scanned for keyword-based secrets AND bare
+30+-char strings — found nothing beyond a non-sensitive Cloudflare account ID (not a credential).
+No repo-level GitHub Secrets/Variables were ever configured (workflow uses only public no-auth MLB
+APIs). One accepted, non-credential tradeoff: every commit's author email is the real personal
+Gmail (`huangjs@gmail.com`), distinct from the `githubhjs` account's public profile email — user
+explicitly chose to accept this rather than rewrite all 1,992 commits' authorship.
+
+Full incident writeup, timeline, and billing-API commands used:
+`local-network-tracker/GITHUB_ACTIONS_BILLING_INCIDENT_20260825.md`.
