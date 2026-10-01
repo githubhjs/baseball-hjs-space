@@ -45,7 +45,9 @@ export function page({ title, description, active, body, generatedAt, extraScrip
   <div class="header-inner">
     <a class="brand" href="/">⚾ Baseball<span class="brand-accent">.hjs.space</span></a>
     <nav class="site-nav">
-        ${navHtml}
+        <div class="nav-links">
+          ${navHtml}
+        </div>
         <button id="theme-toggle" class="theme-toggle" onclick="cycleTheme()" aria-label="切換深色／淺色主題" type="button"></button>
     </nav>
   </div>

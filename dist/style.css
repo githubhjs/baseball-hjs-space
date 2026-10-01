@@ -116,7 +116,28 @@ a {
 
 .site-nav {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Scrollable row of nav links -- kept separate from the theme toggle so the
+   toggle never scrolls out of view. min-width:0 + overflow-x:auto lets this
+   shrink below its content's natural width on narrow viewports instead of
+   forcing each nav-link's CJK text to line-wrap character-by-character
+   (the default CJK line-break behavior breaks between any two characters). */
+.nav-links {
+  display: flex;
+  flex-wrap: nowrap;
   gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.nav-links::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-link {
@@ -125,6 +146,8 @@ a {
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
 
@@ -148,6 +171,7 @@ a {
   background: none;
   border: 1px solid var(--border);
   cursor: pointer;
+  flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
 }
 
@@ -386,8 +410,23 @@ a {
   color: var(--accent);
 }
 
+/* Scroll affordance: two linear-gradient "fade" layers scroll WITH the
+   content (background-attachment: local) so they self-hide once you've
+   scrolled past them, while two radial-gradient "shadow" layers stay fixed
+   to the viewport (background-attachment: scroll) so a hint is always
+   visible at whichever edge still has clipped content. Pure CSS, no JS --
+   this is what tells a visitor there's more to see instead of columns like
+   近十戰/連勝敗 just silently disappearing off the right edge. */
 .table-scroll {
   overflow-x: auto;
+  background:
+    linear-gradient(to right, var(--bg-card) 50%, rgba(0, 0, 0, 0)) left,
+    linear-gradient(to left, var(--bg-card) 50%, rgba(0, 0, 0, 0)) right,
+    radial-gradient(farthest-side at left, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0)) left,
+    radial-gradient(farthest-side at right, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0)) right;
+  background-repeat: no-repeat;
+  background-size: 24px 100%, 24px 100%, 16px 100%, 16px 100%;
+  background-attachment: local, local, scroll, scroll;
 }
 
 .standings-table {
@@ -733,7 +772,17 @@ tr.wc-in td:first-child {
 
 .leaders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* auto-fit (not auto-fill): when a section has fewer cards than would fit
+     per row, auto-fill still reserves empty invisible tracks for cards that
+     don't exist, so the real cards stay pinned at the 240px minimum and
+     their 1fr never gets to grow -- that's what caused full names like
+     "Yordan Alva..." to ellipsis-truncate while whitespace sat unused to
+     the right. auto-fit collapses those empty tracks so 1fr actually
+     redistributes the leftover width onto the real cards. Minimum raised
+     from 240px to 280px so a packed row (4 cards across ~1040px of page
+     width) also gives each card enough room for longer real names (e.g.
+     "Pete Crow-Armstrong") instead of ellipsis-truncating them. */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
 }
 

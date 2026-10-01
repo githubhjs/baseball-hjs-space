@@ -26,12 +26,14 @@
   <div class="header-inner">
     <a class="brand" href="/">⚾ Baseball<span class="brand-accent">.hjs.space</span></a>
     <nav class="site-nav">
-        <a href="/" class="nav-link active">今日賽事</a>
+        <div class="nav-links">
+          <a href="/" class="nav-link active">今日賽事</a>
         <a href="/standings/" class="nav-link">戰績排名</a>
         <a href="/postseason/" class="nav-link">季後賽</a>
         <a href="/leaders/" class="nav-link">數據王</a>
         <a href="/advanced/" class="nav-link">進階數據</a>
         <a href="/history/" class="nav-link">歷史數據</a>
+        </div>
         <button id="theme-toggle" class="theme-toggle" onclick="cycleTheme()" aria-label="切換深色／淺色主題" type="button"></button>
     </nav>
   </div>
@@ -351,7 +353,7 @@
 </main>
 <footer class="site-footer">
   <p>資料來源：<a href="https://statsapi.mlb.com/" target="_blank" rel="noopener">MLB Stats API</a>（官方公開數據）。本站由 GitHub Actions 定時抓取並自動產生，非官方網站，與 MLB 無關。</p>
-  <p class="updated-at">最後更新：2026年10月01日 星期四 10:15</p>
+  <p class="updated-at">最後更新：2026年10月01日 星期四 10:22</p>
 </footer>
 
 </body>
